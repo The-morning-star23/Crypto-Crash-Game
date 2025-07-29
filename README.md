@@ -59,7 +59,7 @@ The server will be running at http://localhost:3000.
 
 This project is fully functional and can be tested using the live links below. Please note the specific hosting setup for the backend.
 
-* **Live Frontend (Vercel):** `[https://crypto-crash-frontend-black.vercel.app/]`
+* **Live Frontend (Vercel):** `[https://crypto-crash-frontend-black.vercel.app]`
 * **Live Backend (ngrok):** `[https://de1b79c8c888.ngrok-free.app]`
 
 ---
