@@ -55,8 +55,44 @@ For production:
 npm start
 The server will be running at http://localhost:3000.
 
-API Endpoint Descriptions:
-Create User
+## Live Demo & Hosting Setup
+
+This project is fully functional and can be tested using the live links below. Please note the specific hosting setup for the backend.
+
+* **Live Frontend (Vercel):** `[https://crypto-crash-frontend-black.vercel.app/]`
+* **Live Backend (ngrok):** `[https://de1b79c8c888.ngrok-free.app]`
+
+---
+### How to Run the Backend
+
+The backend is hosted locally and exposed to the internet via an `ngrok` tunnel. For the live links to work, I will have the server and tunnel running on my machine. If the backend is offline for any reason, it can be restarted with the following steps:
+
+1.  **Run the Local Server:** In the backend project's directory, run the start command.
+    ```bash
+    npm run dev
+    ```
+
+2.  **Start the ngrok Tunnel:** In a separate terminal, run the command to expose the local port 3000.
+    ```bash
+    ./ngrok http 3000
+    ```
+3.  **Get the Public URL:** The `ngrok` terminal will display a public `https://...` URL. This is the live backend address.
+
+4.  **Update Frontend:** This new URL must be updated in the frontend's `index.html` file, and the change pushed to the frontend's GitHub repository to trigger a redeployment on Vercel.
+
+---
+### Explanation of Hosting Choice
+
+The initial goal was to deploy the backend to a standard cloud platform like Render for persistent, 24/7 hosting.
+
+However, I encountered several platform-specific roadblocks:
+* My free-tier usage limit on **Render** was reached and is due to reset on August 1st.
+* Alternative platforms like **Fly.io**, **Railway**, and **Replit** presented unexpected paywalls or verification requirements that could not be met.
+
+To ensure the project could be submitted and reviewed promptly without further delay, I chose the reliable solution of hosting the backend locally and exposing it with a secure `ngrok` tunnel. This approach demonstrates the full, real-time functionality of the application as intended.
+
+### API Endpoint Descriptions:
+### Create User:
 Creates a new user and provides them with starting funds for testing.
 URL: /api/users
 Method: POST
@@ -78,7 +114,7 @@ JSON
   }
 }
 
-Get Wallet Balance:
+### Get Wallet Balance:
 Retrieves a user's crypto wallet balance and its equivalent value in USD.
 URL: /api/users/:userId/wallet
 Method: GET
@@ -93,7 +129,7 @@ JSON
   }
 }
 
-Place a Bet:
+### Place a Bet:
 Places a bet for a user in an upcoming round. Bets can only be placed between rounds.
 URL: /api/game/bet
 Method: POST
@@ -114,29 +150,29 @@ JSON
   }
 }
 
-WebSocket Event Descriptions:
-Server-to-Client Events:
+### WebSocket Event Descriptions:
+### Server-to-Client Events:
 The server broadcasts these events to all connected clients.
-round_start:
+### round_start:
 
 Description: Signals the start of a new game round. The multiplier begins increasing from 1.00x.
 Payload: null
 
-multiplier_update:
+### multiplier_update:
 
 Description: Sent every 100ms while the game is running.
 Payload:
 JSON
 { "multiplier": 1.52 }
 
-round_crash:
+### round_crash:
 
 Description: Signals that the round has ended and the multiplier has crashed.
 Payload:
 JSON
 { "crashPoint": 4.78 }
 
-player_cashed_out:
+### player_cashed_out:
 
 Description: Broadcast when any player successfully cashes out.
 Payload:
@@ -147,17 +183,17 @@ JSON
   "payout_usd": "25.00"
 }
 
-Client-to-Server Events:
+### Client-to-Server Events:
 The client sends these events to the server.
-cashout:
+### cashout:
 
 Description: Sent when a player wants to cash out their active bet.
 Payload:
 JSON
 { "userId": "632b...e4f" }
 
-Core Concepts Explained:
-Provably Fair Algorithm:
+### Core Concepts Explained:
+### Provably Fair Algorithm:
 The game's outcome is determined by a provably fair algorithm, ensuring that the crash point is both random and tamper-proof.
 
 The process for each round is as follows:
