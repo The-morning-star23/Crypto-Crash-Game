@@ -37,7 +37,7 @@ PORT=3000
 
 # Database Configuration
 # Replace with your local or cloud MongoDB connection string
-MONGO_URI=mongodb+srv://kumarshubh263:JfkE9DVMXCpKKsDz@crypto-crash-game.zicza1m.mongodb.net/?retryWrites=true&w=majority&appName=crypto-crash-game
+MONGO_URI=mongodb+srv://kumarshubh263:xD30hcfK9O1kpdRP@cluster0.ciok0bg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 
 # Game Configuration
 # The time between game rounds in milliseconds
@@ -60,36 +60,7 @@ The server will be running at http://localhost:3000.
 This project is fully functional and can be tested using the live links below. Please note the specific hosting setup for the backend.
 
 * **Live Frontend (Vercel):** `[https://crypto-crash-frontend-black.vercel.app]`
-* **Live Backend (ngrok):** `[https://de1b79c8c888.ngrok-free.app]`
-
----
-### How to Run the Backend
-
-The backend is hosted locally and exposed to the internet via an `ngrok` tunnel. For the live links to work, I will have the server and tunnel running on my machine. If the backend is offline for any reason, it can be restarted with the following steps:
-
-1.  **Run the Local Server:** In the backend project's directory, run the start command.
-    ```bash
-    npm run dev
-    ```
-
-2.  **Start the ngrok Tunnel:** In a separate terminal, run the command to expose the local port 3000.
-    ```bash
-    ./ngrok http 3000
-    ```
-3.  **Get the Public URL:** The `ngrok` terminal will display a public `https://...` URL. This is the live backend address.
-
-4.  **Update Frontend:** This new URL must be updated in the frontend's `index.html` file, and the change pushed to the frontend's GitHub repository to trigger a redeployment on Vercel.
-
----
-### Explanation of Hosting Choice
-
-The initial goal was to deploy the backend to a standard cloud platform like Render for persistent, 24/7 hosting.
-
-However, I encountered several platform-specific roadblocks:
-* My free-tier usage limit on **Render** was reached and is due to reset on August 1st.
-* Alternative platforms like **Fly.io**, **Railway**, and **Replit** presented unexpected paywalls or verification requirements that could not be met.
-
-To ensure the project could be submitted and reviewed promptly without further delay, I chose the reliable solution of hosting the backend locally and exposing it with a secure `ngrok` tunnel. This approach demonstrates the full, real-time functionality of the application as intended.
+* **Live Backend (Railway):** `[https://crypto-crash-game-production.up.railway.app]`
 
 ### API Endpoint Descriptions:
 ### Create User:
