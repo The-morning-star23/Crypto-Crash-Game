@@ -10,11 +10,13 @@ require('dotenv').config();
 
 const express = require('express');
 const http = require('http');
+const cors = require('cors');
 const { Server } = require("socket.io");
 const connectDB = require('./src/config/db');
 
 // --- Initial Setup ---
 const app = express();
+app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
