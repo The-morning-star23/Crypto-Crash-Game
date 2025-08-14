@@ -4,26 +4,25 @@ const cryptoService = require('../services/crypto.service');
 // @desc    Create a new user
 // @route   POST /api/users
 exports.createUser = async (req, res) => {
+  console.log('--- CREATE USER CONTROLLER HIT ---');
   try {
     const { username } = req.body;
-    if (!username) {
-      return res.status(400).json({ message: 'Username is required' });
-    }
-
-    let user = await User.findOne({ username });
-    if (user) {
-      return res.status(400).json({ message: 'Username already exists' });
-    }
+    console.log(`Received request to create username: ${username}`);
 
     // Give new users some starting funds for testing
-    user = new User({
+    const user = new User({
       username,
       wallet: { BTC: 1, ETH: 10 }
     });
+    console.log('--- User object created, attempting to save... ---');
 
     await user.save();
+    console.log('--- User saved successfully! ---');
+
     res.status(201).json({ message: 'User created successfully', user });
+    console.log('--- Response sent to client. ---');
   } catch (error) {
+    console.error('--- ERROR CAUGHT IN createUser ---', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
