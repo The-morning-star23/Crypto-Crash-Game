@@ -1,189 +1,112 @@
----Crypto Crash - Backend
-This is the backend for "Crypto Crash," a real-time, multiplayer betting game. Players bet in USD, which is converted to cryptocurrency, and watch a multiplier increase until it randomly "crashes."
+# Crypto Crash - Backend
 
-The project is built with Node.js, Express.js, MongoDB, and Socket.IO for real-time communication. It features a provably fair game algorithm, real-time crypto price integration, and simulated player wallets.
+Backend for "Crypto Crash", a real-time multiplayer betting game. Players bet in USD (converted to crypto), watch a multiplier increase, and try to cash out before it randomly crashes.
 
-Overview of Approach
-Game Logic: A central game.service.js manages the game state, runs the 10-second game loop, calculates the multiplier, and determines the crash point using a provably fair algorithm.
+Tech stack: Node.js, Express, MongoDB, Socket.IO. Features a provably-fair RNG, real-time crypto price integration (CoinGecko), and simulated player wallets.
 
-Crypto Integration: A crypto.service.js fetches and caches real-time prices from the CoinGecko API. All player balances are stored in crypto (BTC/ETH), and bets placed in USD are converted at the time of the bet.
+## Table of contents
+- Overview
+- Features
+- Setup & installation
+- Environment variables
+- Running
+- API endpoints
+- WebSocket events
+- Provably-fair algorithm
+- USD ↔ Crypto conversion
+- Live demo
 
-WebSockets: A Socket.IO server manages real-time communication for broadcasting game events (round start, multiplier updates, crash) and handling player cash-out requests with minimal latency.
+## Overview
+- Game loop runs every GAME_ROUND_INTERVAL (default 10s).
+- Server generates a secret seed per round; the hash determines a crash point.
+- Socket.IO broadcasts round events and accepts cash-out requests in real time.
 
-Setup and Installation
+## Features
+- Provably fair round generation
+- Real-time price fetching (CoinGecko) with short caching to avoid rate limits
+- Bets placed in USD and stored/settled in crypto (BTC/ETH)
+- WebSocket events for multiplier updates and round lifecycle
+
+## Setup & installation
+
 Prerequisites
-Node.js (v16 or later)
+- Node.js (v16+)
+- MongoDB (local or Atlas)
+- Git
 
-MongoDB (or a MongoDB Atlas cloud instance)
-
-Git
-
-Installation Steps
-Clone the repository: https://github.com/The-morning-star23/Crypto-Crash-Game.git
-
-Bash
-
+Clone and install
+bash
 git clone https://github.com/The-morning-star23/Crypto-Crash-Game.git
-cd crypto-crash-game
-
-Install dependencies:
+cd Crypto-Crash-Game
 npm install
 
-Create an environment file:
-Create a file named .env in the root of the project and add the following variables.
+## Environment variables
+Create a `.env` in project root with these variables:
 
-# Server Configuration
 PORT=3000
 
-# Database Configuration
-# Replace with your local or cloud MongoDB connection string
-MONGO_URI=mongodb+srv://kumarshubh263:xD30hcfK9O1kpdRP@cluster0.ciok0bg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+# MongoDB connection string (do NOT commit credentials)
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/<dbname>?retryWrites=true&w=majority
 
-# Game Configuration
-# The time between game rounds in milliseconds
 GAME_ROUND_INTERVAL=10000
 
-Cryptocurrency API Configuration:
-This project uses the free, public CoinGecko API to fetch cryptocurrency prices. No API key is required. The service is ready to use out of the box.
+Notes:
+- Replace MONGO_URI with your own connection string. Do not publish secrets.
+- CoinGecko API is used and requires no API key.
 
-Running the Application:
-
-For development (with auto-reload):
+## Running
+Development (auto-reload):
 npm run dev
 
-For production:
+Production:
 npm start
-The server will be running at http://localhost:3000.
 
-## Live Demo & Hosting Setup
+Server runs by default at http://localhost:3000
 
-This project is fully functional and can be tested using the live links below. Please note the specific hosting setup for the backend.
+## API endpoints (summary)
 
-* **Live Frontend (Vercel):** `[https://crypto-crash-frontend-black.vercel.app]`
-* **Live Backend (Railway):** `[https://crypto-crash-game-production.up.railway.app]`
+Create user
+- POST /api/users
+- Body: { "username": "player1" }
+- Returns created user with starter wallet (e.g., { BTC: 1, ETH: 10 })
 
-### API Endpoint Descriptions:
-### Create User:
-Creates a new user and provides them with starting funds for testing.
-URL: /api/users
-Method: POST
-Request Body:
-JSON
-{
-  "username": "player1"
-}
-Success Response (201):
-JSON
-{
-  "message": "User created successfully",
-  "user": {
-    "wallet": { "BTC": 1, "ETH": 10 },
-    "_id": "632b...e4f",
-    "username": "player1",
-    "createdAt": "...",
-    "updatedAt": "..."
-  }
-}
+Get wallet balance
+- GET /api/users/:userId/wallet
+- Returns crypto balances and USD equivalents using latest cached prices
 
-### Get Wallet Balance:
-Retrieves a user's crypto wallet balance and its equivalent value in USD.
-URL: /api/users/:userId/wallet
-Method: GET
-Success Response (200):
-JSON
-{
-  "wallet": { "BTC": 0.999833, "ETH": 10 },
-  "usd_equivalents": {
-    "BTC": 60000.50,
-    "ETH": 30000,
-    "total": 90000.50
-  }
-}
+Place a bet
+- POST /api/game/bet
+- Body: { "userId": "...", "betAmountUSD": 10, "currency": "BTC" }
+- Bets accepted between rounds; USD converted to crypto at placement time
 
-### Place a Bet:
-Places a bet for a user in an upcoming round. Bets can only be placed between rounds.
-URL: /api/game/bet
-Method: POST
-Request Body:
-JSON
-{
-  "userId": "632b...e4f",
-  "betAmountUSD": 10,
-  "currency": "BTC"
-}
-Success Response (200):
-JSON
-{
-  "message": "Bet placed successfully",
-  "newBalance": {
-    "BTC": 0.999833,
-    "ETH": 10
-  }
-}
+## WebSocket events
 
-### WebSocket Event Descriptions:
-### Server-to-Client Events:
-The server broadcasts these events to all connected clients.
-### round_start:
+Server → Client
+- round_start: signals round start
+- multiplier_update: every ~100ms while running; payload: { "multiplier": 1.52 }
+- round_crash: round ended; payload: { "crashPoint": 4.78 }
+- player_cashed_out: broadcast when a player cashes out; payload:
+  { "username": "player1", "cashout_multiplier": 2.5, "payout_usd": "25.00" }
 
-Description: Signals the start of a new game round. The multiplier begins increasing from 1.00x.
-Payload: null
+Client → Server
+- cashout: when a player cashes out; payload: { "userId": "..." }
 
-### multiplier_update:
+## Provably-fair algorithm (summary)
+- Server generates a cryptographically secure serverSeed before the round.
+- Server publishes HMAC-SHA256 hash of that seed (seed is kept secret until round end).
+- The hash deterministically maps to a crash multiplier.
+- After the round finishes, server reveals the seed so clients can verify the hash → crashPoint mapping.
 
-Description: Sent every 100ms while the game is running.
-Payload:
-JSON
-{ "multiplier": 1.52 }
+## USD-to-Crypto conversion
+- Prices fetched from CoinGecko and cached (short TTL, e.g., 10s).
+- Conversion at bet placement:
+ CryptoAmount = USD_Bet / CurrentPrice_USD
+- Winnings recorded in crypto; converted to USD for display using latest price.
 
-### round_crash:
+## Live demo & hosting
+- Live Frontend (Vercel): https://crypto-crash-frontend-black.vercel.app
+- Live Backend (Render): https://crypto-crash-game-i6xw.onrender.com
 
-Description: Signals that the round has ended and the multiplier has crashed.
-Payload:
-JSON
-{ "crashPoint": 4.78 }
-
-### player_cashed_out:
-
-Description: Broadcast when any player successfully cashes out.
-Payload:
-JSON
-{
-  "username": "player1",
-  "cashout_multiplier": 2.5,
-  "payout_usd": "25.00"
-}
-
-### Client-to-Server Events:
-The client sends these events to the server.
-### cashout:
-
-Description: Sent when a player wants to cash out their active bet.
-Payload:
-JSON
-{ "userId": "632b...e4f" }
-
-### Core Concepts Explained:
-### Provably Fair Algorithm:
-The game's outcome is determined by a provably fair algorithm, ensuring that the crash point is both random and tamper-proof.
-
-The process for each round is as follows:
-
-Secret Seed: Before the round begins, the server generates a cryptographically secure secret serverSeed.
-
-Hashing: This seed is immediately hashed using HMAC-SHA256. This hash uniquely determines the outcome of the round. Because this is done before any bets are placed, the result cannot be altered.
-
-Crash Point Generation: A mathematical formula is used to convert the generated hash into a multiplier value (the crashPoint). This formula is designed to provide a fair distribution of outcomes.
-
-Verification: After the round is over, the original serverSeed is revealed and stored with the game round's history. Players can independently take this seed, apply the same hashing algorithm, and verify that it produces the exact same crashPoint that the game had, proving the result was not manipulated.
-
-USD-to-Crypto Conversion Logic:
-All bets are made in USD to provide a stable reference point for players, but the underlying mechanics operate in cryptocurrency.
-
-Price Fetching: The backend calls the CoinGecko API to get the latest USD prices for BTC and ETH. To avoid hitting API rate limits, these prices are cached for 10 seconds.
-
-Conversion Formula: When a player places a bet, the USD amount is converted to the selected cryptocurrency using the most recently cached price. The formula is:
-
-Crypto Amount = USD Bet Amount / Current Price of Crypto in USD
-
-This ensures that the crypto value of the bet is locked in at the moment it is placed. Winnings are calculated in crypto and then converted back to USD for display purposes using the latest price.
+## Notes & security
+- Remove any hard-coded credentials from the repo and `.env` before publishing.
+- Ensure your MongoDB user has appropriate permissions and rotate credentials if leaked.
