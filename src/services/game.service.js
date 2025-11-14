@@ -1,9 +1,9 @@
 const GameRound = require('../models/gameRound.model');
-const { generateCrashPoint } = require('../utils/provablyFair');
 const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
-const cryptoService = require('./crypto.service'); // Make sure this is imported if not already
+const { generateCrashPoint } = require('../utils/provablyFair');
 const crypto = require('crypto');
+const cryptoService = require('./crypto.service');
 
 // --- Game State ---
 let gameState = {
@@ -12,12 +12,12 @@ let gameState = {
   startTime: null,
   crashPoint: null,
   roundId: null,
-  activeBets: [], // We'll add bet handling logic here later
+  activeBets: [],
 };
 
 let gameLoopInterval = null;
 let tickerInterval = null;
-let io = null; // We will set this from server.js
+let io = null; // Will be set by server.js
 
 // --- Main Game Loop Function ---
 function runGameRound() {
@@ -27,12 +27,13 @@ function runGameRound() {
 
   // Reset game state for a new round
   gameState = {
-    ...gameState, // Keep activeBets if any are placed between rounds
+    ...gameState,
     status: 'running',
     multiplier: 1.00,
     startTime: Date.now(),
     crashPoint: crashPoint,
     roundId: null, // We'll get this after saving the round
+    // activeBets is NOT cleared here, it's cleared in endRound
   };
   
   // Broadcast round start to all clients
@@ -42,11 +43,9 @@ function runGameRound() {
   // Start the multiplier ticker
   tickerInterval = setInterval(() => {
     const elapsed = (Date.now() - gameState.startTime) / 1000; // time in seconds
-    // Use the formula: multiplier = 1 + (time_elapsed * growth_factor)
-    // We'll use an exponential curve for a more classic feel
     gameState.multiplier = parseFloat(Math.pow(1.05, elapsed).toFixed(2));
 
-    // 5. Check for crash
+    // Check for crash
     if (gameState.multiplier >= gameState.crashPoint) {
       endRound(hash, serverSeed);
     } else {
@@ -62,33 +61,28 @@ async function endRound(hash, serverSeed) {
   console.log(`--- Round Crashed at ${gameState.crashPoint}x ---`);
   io.emit('round_crash', { crashPoint: gameState.crashPoint });
 
+  // Grab a snapshot of the bets for this round
+  const betsToSave = [...gameState.activeBets];
+  // Immediately clear the active bets list for the next round
+  gameState.activeBets = [];
+
   // Save the round to the database
   try {
     const round = new GameRound({
       crash_point: gameState.crashPoint,
       provably_fair: {
-        seed: serverSeed, // For a real game, only reveal this after the round
+        seed: serverSeed,
         hash: hash,
       },
-      bets: gameState.activeBets, // Save bets from this round
+      bets: betsToSave, // Save the snapshot
     });
-    const savedRound = await round.save();
-    gameState.roundId = savedRound._id;
-    gameState.activeBets = []; // Clear bets for the next round
+    await round.save();
   } catch (error) {
     console.error('Failed to save game round:', error);
   }
 
   // Set status to 'waiting' before the next loop starts
   gameState.status = 'waiting';
-}
-function startGameLoop(socketIo) {
-  io = socketIo;
-  const roundInterval = parseInt(process.env.GAME_ROUND_INTERVAL, 10);
-
-  // Run the first round immediately, then set the interval
-  runGameRound();
-  gameLoopInterval = setInterval(runGameRound, roundInterval);
 }
 
 function addBet(betDetails) {
@@ -126,17 +120,16 @@ async function cashOut(playerId) {
   bet.payout_crypto = payoutCrypto;
 
   // Atomically update the user's wallet in the database
-  // The '$inc' operator is crucial here for preventing race conditions
   const user = await User.findByIdAndUpdate(
     playerId,
     { $inc: { [`wallet.${bet.currency}`]: payoutCrypto } },
     { new: true } // Returns the updated document
   );
 
-  // 6. Log the cashout transaction
+  // Log the cashout transaction
   const prices = await cryptoService.getPrices();
   const payoutUSD = payoutCrypto * prices[bet.currency];
-
+  
   const transaction = new Transaction({
     player_id: playerId,
     usd_amount: payoutUSD,
@@ -157,6 +150,16 @@ async function cashOut(playerId) {
   });
 
   return { username: user.username, cashoutMultiplier };
+}
+
+// This function is exported and called from server.js
+function startGameLoop(socketIo) {
+  io = socketIo;
+  const roundInterval = parseInt(process.env.GAME_ROUND_INTERVAL, 10);
+
+  // Run the first round immediately, then set the interval
+  runGameRound();
+  gameLoopInterval = setInterval(runGameRound, roundInterval);
 }
 
 module.exports = { startGameLoop, addBet, cashOut };
