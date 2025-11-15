@@ -14,7 +14,7 @@ exports.createUser = async (req, res) => {
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       // Send a 409 Conflict (or 400 Bad Request)
-      return res.status(409).json({ message: 'Useralready exists. Please try another.' });
+      return res.status(409).json({ message: 'User already exists. Please try another.' });
     }
 
     // Give new users some starting funds for testing
